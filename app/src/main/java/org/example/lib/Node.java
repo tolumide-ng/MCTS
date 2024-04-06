@@ -123,14 +123,14 @@ public class Node implements Comparable<Node> {
      * 
      * @param scr
      */
-    public void backPropagate(double[] scr) {
+    public void backPropagateScore(double[] scr) {
         this.games++;
         for (int i = 0; i < scr.length; i++) {
             this.score[i] += scr[i];
         }
 
         if (parent != null) {
-            parent.backPropagate(scr);
+            parent.backPropagateScore(scr);
         }
     }
 
@@ -257,7 +257,7 @@ public class Node implements Comparable<Node> {
 
         int randomIndex = -1;
         double random = Math.random() * totalWeight;
-        for (int i = 0; i < weights.length; i++) {
+        for (int i = 0; i < weights.length; ++i) {
             random -= weights[i];
             if (random <= 0.0d) {
                 randomIndex = i;
