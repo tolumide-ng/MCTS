@@ -3,6 +3,8 @@ package org.example.lib;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -11,6 +13,8 @@ import java.util.concurrent.FutureTask;
 
 import org.example.lib.support.HeuristicFunction;
 import org.example.lib.support.PlayoutSelection;
+import org.example.ticTacToe.TicTacToe;
+import org.example.ticTacToe.TicTacToeMove;
 
 public class MCTS {
     private Random random;
@@ -43,7 +47,7 @@ public class MCTS {
      * @param bounds - enable  or disable score bounds
      * @return
      */
-    public Move runMCTS_UTC(Board startingBoard, int runs, boolean bounds) {
+    public Move runMCTS_UCT(Board startingBoard, int runs, boolean bounds) {
         scoreBounds = bounds;
         Node rootNode = new Node(startingBoard);
         boolean pmode = rootParallelisation;
@@ -58,38 +62,38 @@ public class MCTS {
         } else {
             for (int i = 0; i < threads; i++) {
                 futures.add((FutureTask<Node>) threadpool.submit(new MCTSTask(startingBoard, runs)));
+            }
 
-                try {
-                    while (!checkDone(futures)) {
-                        Thread.sleep(10);
-                    }
-
-                    ArrayList<Node> rootNodes = new ArrayList<>();
-
-                    // Collect all computed root nodes
-                    for (FutureTask<Node> f : futures) {
-                        rootNodes.add(f.get());
-                    }
-
-                    ArrayList<Move> moves = new ArrayList<>();
-
-                    for (Node n : rootNodes) {
-                        Node c = robustChild(n); // Select robust child
-                        moves.add(c.move);
-                    }
-
-                    bestMoveFound = vote(moves);
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
+            try {
+                while (!checkDone(futures)) {
+                    Thread.sleep(10);
                 }
+
+                ArrayList<Node> rootNodes = new ArrayList<>();
+
+                // Collect all computed root nodes
+                for (FutureTask<Node> f : futures) {
+                    rootNodes.add(f.get());
+                }
+
+                ArrayList<Move> moves = new ArrayList<>();
+
+                for (Node n : rootNodes) {
+                    Node c = robustChild(n); // Select robust child (most visited child in each rootNode)
+                    moves.add(c.move);
+                }
+
+                bestMoveFound = vote(moves);
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
             }
             futures.clear();
         }
         
         long endTime = System.nanoTime();
-        
+
         if (this.trackTime) {
-            System.out.println("Making choice for player: " + rootNode.player);
+            // System.out.println("Making choice for player: " + rootNode.player);
             System.out.println("Thinking time per move in milliseconds: " + (endTime - startTime) / 1000000);
         }
         
@@ -101,6 +105,12 @@ public class MCTS {
         Collections.sort(moves);
         ArrayList<Integer> counts = new ArrayList<>();
         ArrayList<Move> cmoves = new ArrayList<>();
+
+        Set<Move> set = new HashSet<>(moves);
+        System.out.println("the size of the set is " + set.size());
+        if (set.size() == 1) {
+            return moves.get(0);
+        }
 
         Move omove = moves.get(0);
         int count = 0;
@@ -115,19 +125,21 @@ public class MCTS {
             }
         }
 
+        // System.out.println("the best moves are: " + cmoves.size());
+
         int mostvotes = 0;
-        ArrayList<Move> mostVotedMoves = new ArrayList<>();
+        ArrayList<Move> mostVotedMove = new ArrayList<>();
         for (int i = 0; i < counts.size(); i++) {
             if (mostvotes < counts.get(i)) {
                 mostvotes = counts.get(i);
-                mostVotedMoves.clear();
-                mostVotedMoves.add(cmoves.get(i));
+                mostVotedMove.clear();
+                mostVotedMove.add(cmoves.get(i));
             } else if (mostvotes == counts.get(i)) {
-                mostVotedMoves.add(cmoves.get(i));
+                mostVotedMove.add(cmoves.get(i));
             }
         }
 
-        return mostVotedMoves.get(random.nextInt(mostVotedMoves.size()));
+        return mostVotedMove.get(random.nextInt(mostVotedMove.size()));
     }
 
     /**
@@ -256,6 +268,9 @@ public class MCTS {
     private Node robustChild(Node n) {
         double bestValue = Double.NEGATIVE_INFINITY;
         double tempBest;
+        
+        // System.out.println("this node has " + n.children.size() + " children");
+
         ArrayList<Node> bestNodes = new ArrayList<>();
 
         for (Node s : n.children) {
@@ -268,8 +283,9 @@ public class MCTS {
                 bestNodes.add(s);
             }
         }
-
+        
         Node finalNode = bestNodes.get(random.nextInt(bestNodes.size()));
+        // System.out.println(">>>>>>>> games is {} " + bestNodes.size());
         return finalNode;
     }
 
@@ -311,6 +327,7 @@ public class MCTS {
      * @return
      */
     private double[] playout(Node state, Board board) {
+        // System.out.println("::::::::::::::::::::");
         ArrayList<Move> moves;
         Move mv;
         Board brd = board.duplicate();
@@ -492,6 +509,8 @@ public class MCTS {
         @Override
         public Node call() throws Exception {
             Node root = new Node(board);
+
+            // System.out.println("****************************************");
 
             for (int i = 0; i < iterations; i++) {
                 select(board.duplicate(), root);

@@ -1,9 +1,9 @@
 package org.example.lib;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Arrays;
 
 public class Node implements Comparable<Node> {
     public double[] score;
@@ -16,6 +16,18 @@ public class Node implements Comparable<Node> {
     public double[] pess; //pessimism
     public double[] opti; // optimism
     public boolean pruned;
+
+    @Override
+    public String toString() {
+        String value = "\tscore = " + Arrays.toString(score) +
+                "\tgames = " + games +
+                "\tchildren = " + children.size() +
+                "\tplayer = " + player +
+                "\tpess = " + Arrays.toString(pess) +
+                "\topti = " + Arrays.toString(opti) +
+                "\tpruned = " + pruned + "\n\n";
+        return value;
+    }
 
     /**
      * This is a special Node constructor that merges multiple
@@ -124,8 +136,10 @@ public class Node implements Comparable<Node> {
      * @param scr
      */
     public void backPropagateScore(double[] scr) {
+        // System.out.println("|||");
         this.games++;
         for (int i = 0; i < scr.length; i++) {
+            // this.score[i] += scr[i];
             this.score[i] += scr[i];
         }
 

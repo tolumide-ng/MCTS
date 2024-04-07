@@ -34,10 +34,18 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = "org.example.App"
+    mainClass = "org.example.ticTacToe.TTMain"
 }
 
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+tasks {
+    // Configure the "run" task to use JVM arguments
+    named<JavaExec>("run") {
+        // Specify JVM arguments
+        jvmArgs("-Xmx5G")
+    }
 }
